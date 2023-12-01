@@ -16,13 +16,29 @@
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.SparkPlan
 
 class Spark33PlanFactory extends SparkPlanFactory {
   /**
    * Generate SparkPlan from the output and RDD of the translated query
    */
-  override def createBigQueryPlan(queryRoot: BigQuerySQLQuery, bigQueryRDDFactory: BigQueryRDDFactory): Option[SparkPlan] = {
-    Some(Spark33BigQueryPushdownPlan(queryRoot.output, bigQueryRDDFactory.buildScanFromSQL(queryRoot.getStatement().toString)))
+  override def createBigQueryPlan(queryRoot: BigQuerySQLQuery,
+                                  bigQueryRDDFactory: BigQueryRDDFactory): Option[SparkPlan] = {
+
+    val aqeOptimizationEnabled = SparkSession.active
+      .conf
+      .get("spark.gcp.bigquery.aqe.optimization.enabled", "true")
+      .toBoolean
+
+    if (aqeOptimizationEnabled) {
+      Some(Spark33BigQueryPushdownScanExec(
+        projection = queryRoot.output,
+        pushdownQuery = queryRoot,
+        bigQueryRDDFactory = bigQueryRDDFactory))
+    } else {
+      Some(Spark33BigQueryPushdownPlan(queryRoot.output,
+        bigQueryRDDFactory.buildScanFromSQL(queryRoot.getStatement().toString)))
+    }
   }
 }

@@ -1,11 +1,26 @@
+/*
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.spark.bigquery.pushdowns
 
 import com.google.cloud.bigquery.connector.common.{BigQueryPushdownException, BigQueryPushdownUnsupportedException}
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil.isDataFrameShowMethodInStackTrace
 import com.google.cloud.spark.bigquery.direct.{BigQueryRDDFactory, DirectBigQueryRelation}
-import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{convertExpressionToNamedExpression, removeProjectNodeFromPlan, addProjectNodeToThePlan, isLimitTheChildToProjectNode}
+import com.google.cloud.spark.bigquery.pushdowns.SparkBigQueryPushdownUtil.{addProjectNodeToThePlan, convertExpressionToNamedExpression, isLimitTheChildToProjectNode, removeProjectNodeFromPlan}
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.Strategy
+import org.apache.spark.sql.{SparkSession, Strategy}
 import org.apache.spark.sql.catalyst.analysis.NamedRelation
 import org.apache.spark.sql.catalyst.expressions.NamedExpression.unapply
 import org.apache.spark.sql.catalyst.expressions.{Alias, Cast, NamedExpression}
@@ -23,7 +38,9 @@ import org.apache.spark.sql.execution.{ProjectExec, SparkPlan}
  * Passing SparkPlanFactory as the constructor parameter here for ease of unit testing
  *
  */
-abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter, expressionFactory: SparkExpressionFactory, sparkPlanFactory: SparkPlanFactory) extends Strategy with Logging {
+abstract class BigQueryStrategy(expressionConverter: SparkExpressionConverter,
+                                expressionFactory: SparkExpressionFactory,
+                                sparkPlanFactory: SparkPlanFactory) extends Strategy with Logging {
 
   /** This iterator automatically increments every time it is used,
    * and is for aliasing subqueries.
